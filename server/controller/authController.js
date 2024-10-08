@@ -1,13 +1,25 @@
+import { generateTokenAndCookies } from "../lib/utils/generateToken.js";
 import User from "../model/user.model.js";
 import bcrypt from "bcryptjs";
 
+// User Login
 export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
     const user = await User.findOne({ email });
 
+    if (!email || !password) {
+      return res.status(400).json({
+        status: false,
+        message: "Email and password are required!",
+        result: null,
+      });
+    }
+
     if (!user) {
-      return res.status(400).json({ error: "Invalid Credentials!" });
+      return res
+        .status(400)
+        .json({ con: false, error: "Invalid Credentials!", result: null });
     }
 
     // Check if the password matches
@@ -17,20 +29,35 @@ export const login = async (req, res) => {
     );
 
     if (!correctPassword) {
-      return res.status(400).json({ error: "Invalid Credentials!" });
+      return res
+        .status(400)
+        .json({ con: false, error: "Invalid Credentials!", result: null });
     }
 
+    const token = generateTokenAndCookies(user._id, res);
+
     res.status(200).json({
-      _id: user._id,
-      name: user.name,
-      email: user.email,
+      con: true,
+      message: "Login successful!",
+      result: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
+        lastLogin: new Date().toISOString(),
+        token: token,
+      },
     });
   } catch (error) {
     console.error("Error in login Controller!", error.message);
-    res.status(500).json({ error: "Internal Server Error!" });
+    res
+      .status(500)
+      .json({ con: false, error: "Internal Server Error!", result: null });
   }
 };
 
+// Register User
 export const register = async (req, res) => {
   try {
     const { name, email, password } = req.body;
@@ -70,18 +97,48 @@ export const register = async (req, res) => {
       password: hashPassword,
     });
 
+    const token = generateTokenAndCookies(newUser._id, res);
     if (newUser) {
       await newUser.save();
       res.status(201).json({
-        _id: newUser._id,
-        name: newUser.name,
-        email: newUser.email,
+        con: true,
+        message: "User Register Successfully.",
+        result: {
+          _id: newUser._id,
+          name: newUser.name,
+          email: newUser.email,
+          createdAt: newUser.createdAt,
+          updatedAt: newUser.updatedAt,
+          token: token,
+        },
       });
     } else {
       res.status(400).json({ error: "Invalid user data!" });
     }
   } catch (error) {
     console.error("Error in Register Controller", error.message);
+    res.status(500).json({ error: "Internal Server Error!" });
+  }
+};
+
+// logout
+export const logout = async (req, res) => {
+  try {
+    res.cookie("jwt", "", { maxAge: 0 });
+    res.status(200).json({ message: "Logout Successfully." });
+  } catch (error) {
+    console.error("Error in logout Controller", error.message);
+    res.status(500).json({ error: "Internal Server Error!" });
+  }
+};
+
+// get me
+export const getMe = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id).select("-password");
+    res.status(200).json(user);
+  } catch (error) {
+    console.error("Error in GetMe Controller", error.message);
     res.status(500).json({ error: "Internal Server Error!" });
   }
 };

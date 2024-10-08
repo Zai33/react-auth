@@ -3,6 +3,9 @@ import daisyUIThemes from "daisyui/src/theming/themes";
 export default {
   content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
   theme: {
+    fontFamily: {
+      sans: ["Montserrat", "Padauk"],
+    },
     extend: {},
   },
   plugins: [require("daisyui")],
